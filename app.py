@@ -1,6 +1,7 @@
 import streamlit as st
 import feedparser
 from bs4 import BeautifulSoup
+import urllib.parse
 
 # Page Setup
 st.set_page_config(page_title="NewsPulse | Live Crux", page_icon="⚡", layout="wide")
@@ -121,7 +122,7 @@ def clean_html(raw_html):
     text = soup.get_text(separator=' ').strip()
     return text if text else "No short summary available."
 
-# Bulletproof Search-Based Category Feeds Mapping
+# Category Feeds Mapping
 CATEGORY_QUERIES = {
     "🔥 Top Stories": "",
     "🌍 World News": "world news",
@@ -151,7 +152,7 @@ custom_search = st.sidebar.text_input("Custom Keyword Search", placeholder="e.g.
 limit_input = st.sidebar.slider("Number of Stories", min_value=3, max_value=15, value=5)
 refresh_clicked = st.sidebar.button("🔄 Check For Latest Updates")
 
-# Build exact reliable URL
+# Build exact reliable URL with safe URL encoding
 if custom_search.strip():
     query = custom_search.strip()
     display_topic = f"Search: '{query}'"
@@ -162,7 +163,8 @@ else:
 if query == "":
     selected_url = "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en"
 else:
-    selected_url = f"https://news.google.com/rss/search?q={query}&hl=en-US&gl=US&ceid=US:en"
+    encoded_query = urllib.parse.quote(query)
+    selected_url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en-US&gl=US&ceid=US:en"
 
 # Fetch Data
 entries = fetch_news(selected_url, limit_input)
