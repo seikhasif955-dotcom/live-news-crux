@@ -8,14 +8,12 @@ st.set_page_config(page_title="NewsPulse | Live Crux", page_icon="⚡", layout="
 # Custom CSS for Modern, Animated UI
 st.markdown("""
 <style>
-    /* Dark Theme Canvas */
     .stApp {
         background: linear-gradient(135deg, #0d0e15 0%, #1a1c29 100%);
         color: #f1f5f9;
         font-family: 'Inter', sans-serif;
     }
     
-    /* Animated Gradient Title Header */
     .title-glow {
         font-size: 2.8rem;
         font-weight: 800;
@@ -33,7 +31,6 @@ st.markdown("""
         100% { background-position: 0% center; }
     }
 
-    /* Live Pulse Badge */
     .live-badge {
         display: inline-block;
         background: rgba(255, 75, 75, 0.15);
@@ -62,7 +59,6 @@ st.markdown("""
         100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 75, 75, 0); }
     }
 
-    /* Glassmorphism News Cards */
     .news-card {
         background: rgba(255, 255, 255, 0.04);
         backdrop-filter: blur(12px);
@@ -75,7 +71,6 @@ st.markdown("""
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     }
 
-    /* Animated Hover Effect */
     .news-card:hover {
         transform: translateY(-5px) scale(1.01);
         border-color: rgba(0, 223, 216, 0.4);
@@ -120,22 +115,21 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 def clean_html(raw_html):
-    """Removes HTML tags and cleans up summary text."""
     if not raw_html:
         return "No short summary available."
     soup = BeautifulSoup(raw_html, "html.parser")
     text = soup.get_text(separator=' ').strip()
     return text if text else "No short summary available."
 
-# Category Feeds Map
-CATEGORY_FEEDS = {
-    "🔥 Top Stories": "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en",
-    "🌍 World News": "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTR29SU2wyRmdDa0oxWW5OamJHa3RKMjluU3dKV1R5Z0FQAQ?hl=en-US&gl=US&ceid=US:en",
-    "💼 Business & Tech": "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTR29SU2wyRmdDa0pRTVRGMGJHeXZNQ3RKMjluU3dKV1R5Z0FQAQ?hl=en-US&gl=US&ceid=US:en",
-    "🤖 AI & Technology": "https://news.google.com/rss/search?q=Artificial+Intelligence+Technology&hl=en-US&gl=US&ceid=US:en",
-    "⚽ Sports": "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTR29SU2wyRmdDa0pRTVRGM2IzTXZNQ3RKMjluU3dKV1R5Z0FQAQ?hl=en-US&gl=US&ceid=US:en",
-    "🎬 Entertainment": "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTR29SU2wyRmdDa0pRTVRGM2IzTXZNQ3RKMjluU3dKV1R5Z0FQAQ?hl=en-US&gl=US&ceid=US:en",
-    "🧬 Health & Science": "https://news.google.com/rss/topics/CAAqIQgKIhtDQkFTR3dBSEpIUXRjSEp2Ykd3dEptVnVNZ2dBUAE?hl=en-US&gl=US&ceid=US:en",
+# Bulletproof Search-Based Category Feeds Mapping
+CATEGORY_QUERIES = {
+    "🔥 Top Stories": "",
+    "🌍 World News": "world news",
+    "💼 Business & Tech": "business technology news",
+    "🤖 AI & Technology": "artificial intelligence tech",
+    "⚽ Sports": "sports news",
+    "🎬 Entertainment": "entertainment movie celebrity news",
+    "🧬 Health & Science": "health science medical news"
 }
 
 def fetch_news(feed_url, limit):
@@ -152,18 +146,23 @@ st.markdown('<div class="live-badge"><span class="pulse-dot"></span>LIVE INTERNE
 
 # Sidebar Controls
 st.sidebar.header("🎯 Preferences")
-category = st.sidebar.selectbox("Category", options=list(CATEGORY_FEEDS.keys()))
+category = st.sidebar.selectbox("Category", options=list(CATEGORY_QUERIES.keys()))
 custom_search = st.sidebar.text_input("Custom Keyword Search", placeholder="e.g. NVIDIA, Tesla, Crypto")
 limit_input = st.sidebar.slider("Number of Stories", min_value=3, max_value=15, value=5)
 refresh_clicked = st.sidebar.button("🔄 Check For Latest Updates")
 
-# Handle Feed Link
+# Build exact reliable URL
 if custom_search.strip():
-    selected_url = f"https://news.google.com/rss/search?q={custom_search.strip()}&hl=en-US&gl=US&ceid=US:en"
-    display_topic = f"Search: '{custom_search.strip()}'"
+    query = custom_search.strip()
+    display_topic = f"Search: '{query}'"
 else:
-    selected_url = CATEGORY_FEEDS[category]
+    query = CATEGORY_QUERIES[category]
     display_topic = category
+
+if query == "":
+    selected_url = "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en"
+else:
+    selected_url = f"https://news.google.com/rss/search?q={query}&hl=en-US&gl=US&ceid=US:en"
 
 # Fetch Data
 entries = fetch_news(selected_url, limit_input)
@@ -179,7 +178,7 @@ else:
     
     st.session_state.seen_stories.update(current_ids)
 
-    # Render Animated Custom Cards
+    # Render Cards
     for entry in entries:
         headline = entry.title
         summary = clean_html(getattr(entry, 'summary', ''))
