@@ -332,3 +332,56 @@
 
             // Using rss2json free API proxy to prevent CORS issues in browser
             const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+
+            try {
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+
+                if (data.status !== 'ok' || !data.items) {
+                    feedContainer.innerHTML = '<div class="loader">❌ Could not fetch news. Please try again.</div>';
+                    return;
+                }
+
+                feedContainer.innerHTML = '';
+                let newCount = 0;
+
+                data.items.slice(0, 8).forEach((item, index) => {
+                    const articleId = item.guid || item.link;
+                    if (!seenArticles.has(articleId)) {
+                        newCount++;
+                        seenArticles.add(articleId);
+                    }
+
+                    // Clean up HTML snippet tags
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = item.description || 'No summary available.';
+                    let cruxText = tempDiv.textContent || tempDiv.innerText || 'No summary available.';
+
+                    const card = document.createElement('div');
+                    card.className = 'news-card';
+                    card.innerHTML = `
+                        <div class="card-title">📌 ${item.title}</div>
+                        <div class="card-time">🕒 ${new Date(item.pubDate).toLocaleString()}</div>
+                        <div class="card-crux">💡 <b>Crux:</b> ${cruxText}</div>
+                        <a href="${item.link}" target="_blank" class="card-link">Read full story on original publisher &rarr;</a>
+                    `;
+                    feedContainer.appendChild(card);
+                });
+
+                statusBanner.style.display = 'block';
+                if (isRefresh && newCount === 0) {
+                    statusBanner.innerHTML = "ℹ️ No new updates found at this moment. You are viewing the latest news.";
+                } else {
+                    statusBanner.innerHTML = "🟢 Showing latest real-time news updates.";
+                }
+
+            } catch (error) {
+                feedContainer.innerHTML = '<div class="loader">❌ Error loading news stream. Check network connection.</div>';
+            }
+        }
+
+        // Initial load
+        fetchNews();
+    </script>
+</body>
+</html>
